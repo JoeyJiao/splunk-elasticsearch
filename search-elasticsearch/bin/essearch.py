@@ -22,7 +22,7 @@ from elasticsearch import Elasticsearch
 import os, sys, time, requests, oauth2, json, urllib
 import splunk.Intersplunk
 
-(isgetinfo, sys.argv) = splunk.Intersplunk.isGetInfo(sys.argv)
+#(isgetinfo, sys.argv) = splunk.Intersplunk.isGetInfo(sys.argv)
 
 from splunklib.searchcommands import \
   dispatch, GeneratingCommand, Configuration, Option, validators

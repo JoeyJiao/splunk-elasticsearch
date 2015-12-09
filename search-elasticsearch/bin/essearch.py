@@ -20,6 +20,7 @@
 from datetime import datetime
 from elasticsearch import Elasticsearch
 import os, sys, time, requests, oauth2, json, urllib
+import splunk.Intersplunk
 
 (isgetinfo, sys.argv) = splunk.Intersplunk.isGetInfo(sys.argv)
 
@@ -48,6 +49,9 @@ class EsCommand(GeneratingCommand):
   This example generates events drawn from the result of the query 
 
   """
+  server = Option(doc='', require=False, default="localhost")
+
+  port = Option(doc='', require=False, default="9200")
 
   index = Option(doc='', require=False, default="*")
 
@@ -69,21 +73,21 @@ class EsCommand(GeneratingCommand):
  
     #pp = pprint.PrettyPrinter(indent=4)
     self.logger.debug('Setup ES')
-    es = Elasticsearch()
+    es = Elasticsearch('{}:{}'.format(self.server, self.port))
     body = {
-          "size": limit,
+          "size": self.limit,
           "query": {
              "filtered" : {
                 "query": {
                       "query_string" : {
-                            "query" : q
+                            "query" : self.q
                       }
                 }
             }
            } 
        }
     #pp.pprint(body);
-    res = es.search(size=50, index=index, body=body);
+    res = es.search(size=50, index=self.index, body=body);
 
     # if response.status_code != 200:
     #   yield {'ERROR': results['error']['text']}

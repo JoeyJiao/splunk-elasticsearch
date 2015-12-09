@@ -18,3 +18,6 @@ examples/*/local
 examples/*/metadata
 tests/searchcommands_data/log/
 tests/searchcommands_data/output/
+tags
+env/
+esearch.log

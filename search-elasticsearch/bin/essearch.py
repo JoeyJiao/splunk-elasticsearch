@@ -87,7 +87,7 @@ class EsCommand(GeneratingCommand):
            } 
        }
     #pp.pprint(body);
-    res = es.search(size=50, index=self.index, body=body);
+    res = es.search(size=self.limit, index=self.index, body=body);
 
     # if response.status_code != 200:
     #   yield {'ERROR': results['error']['text']}

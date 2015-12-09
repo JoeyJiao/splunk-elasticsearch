@@ -8,14 +8,14 @@ except ImportError:
 
 from .base import Connection
 from ..exceptions import ConnectionError, ImproperlyConfigured, ConnectionTimeout, SSLError
-from ..compat import urlencode
+from ..compat import urlencode, string_types
 
 class RequestsHttpConnection(Connection):
     """
     Connection using the `requests` library.
 
     :arg http_auth: optional http auth information as either ':' separated
-        string or a tuple
+        string or a tuple. Any value will be passed into requests as `auth`.
     :arg use_ssl: use ssl for the connection if `True`
     :arg verify_certs: whether to verify SSL certificates
     :arg ca_certs: optional path to CA bundle. By default standard requests'
@@ -32,9 +32,10 @@ class RequestsHttpConnection(Connection):
         super(RequestsHttpConnection, self).__init__(host= host, port=port, **kwargs)
         self.session = requests.session()
         if http_auth is not None:
-            if not isinstance(http_auth, (tuple, list)):
-                http_auth = http_auth.split(':', 1)
-            http_auth = tuple(http_auth)
+            if isinstance(http_auth, (tuple, list)):
+                http_auth = tuple(http_auth)
+            elif isinstance(http_auth, string_types):
+                http_auth = tuple(http_auth.split(':', 1))
             self.session.auth = http_auth
         self.base_url = 'http%s://%s:%d%s' % (
             's' if use_ssl else '',

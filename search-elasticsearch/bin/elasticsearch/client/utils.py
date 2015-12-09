@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import weakref
 from datetime import date, datetime
 from functools import wraps
 from ..compat import string_types, quote_plus
@@ -46,7 +47,7 @@ def _make_path(*parts):
         quote_plus(_escape(p), b',*') for p in parts if p not in SKIP_IN_PATH)
 
 # parameters that apply to all methods
-GLOBAL_PARAMS = ('pretty', 'format')
+GLOBAL_PARAMS = ('pretty', 'format', 'filter_path')
 
 def query_params(*es_query_params):
     """
@@ -77,3 +78,10 @@ class NamespacedClient(object):
     @property
     def transport(self):
         return self.client.transport
+
+class AddonClient(NamespacedClient):
+    @classmethod
+    def infect_client(cls, client):
+        addon = cls(weakref.proxy(client))
+        setattr(client, cls.namespace, addon)
+        return client

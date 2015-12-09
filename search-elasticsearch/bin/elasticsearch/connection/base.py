@@ -12,7 +12,8 @@ logger = logging.getLogger('elasticsearch')
 # logger hasn't already been configured
 _tracer_already_configured = 'elasticsearch.trace' in logging.Logger.manager.loggerDict
 tracer = logging.getLogger('elasticsearch.trace')
-tracer.propagate = not _tracer_already_configured
+if not _tracer_already_configured:
+    tracer.propagate = False
 
 
 class Connection(object):
@@ -95,6 +96,8 @@ class Connection(object):
         try:
             additional_info = json.loads(raw_data)
             error_message = additional_info.get('error', error_message)
+            if isinstance(error_message, dict) and 'type' in error_message:
+                error_message = error_message['type']
         except:
             # we don't care what went wrong
             pass

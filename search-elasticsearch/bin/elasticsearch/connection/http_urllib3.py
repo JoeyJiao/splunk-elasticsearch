@@ -20,24 +20,28 @@ class Urllib3HttpConnection(Connection):
         for instructions how to get default set
     :arg client_cert: path to the file containing the private key and the
         certificate
+    :arg ssl_version: version of the SSL protocol to use. Choices are:
+        SSLv23 (default) SSLv2 SSLv3 TLSv1 (see ``PROTOCOL_*`` constants in the
+        ``ssl`` module for exact options for your environment).
     :arg maxsize: the maximum number of connections which will be kept open to
         this host.
     """
     def __init__(self, host='localhost', port=9200, http_auth=None,
             use_ssl=False, verify_certs=False, ca_certs=None, client_cert=None,
-            maxsize=10, **kwargs):
+            ssl_version=None, maxsize=10, **kwargs):
 
         super(Urllib3HttpConnection, self).__init__(host=host, port=port, **kwargs)
-        self.headers = {}
+        self.headers = urllib3.make_headers(keep_alive=True)
         if http_auth is not None:
             if isinstance(http_auth, (tuple, list)):
                 http_auth = ':'.join(http_auth)
-            self.headers = urllib3.make_headers(basic_auth=http_auth)
+            self.headers.update(urllib3.make_headers(basic_auth=http_auth))
 
         pool_class = urllib3.HTTPConnectionPool
         kw = {}
         if use_ssl:
             pool_class = urllib3.HTTPSConnectionPool
+            kw['ssl_version'] = ssl_version
 
             if verify_certs:
                 kw['cert_reqs'] = 'CERT_REQUIRED'
@@ -63,10 +67,13 @@ class Urllib3HttpConnection(Connection):
             if timeout:
                 kw['timeout'] = timeout
 
-            # in python2 we need to make sure the url is not unicode. Otherwise
-            # the body will be decoded into unicode too and that will fail (#133).
+            # in python2 we need to make sure the url and method are not
+            # unicode. Otherwise the body will be decoded into unicode too and
+            # that will fail (#133, #201).
             if not isinstance(url, str):
                 url = url.encode('utf-8')
+            if not isinstance(method, str):
+                method = method.encode('utf-8')
 
             response = self.pool.urlopen(method, url, body, retries=False, headers=self.headers, **kw)
             duration = time.time() - start

@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 from socket import timeout as SocketTimeout
+from socket import error as SocketError
 import time
 import logging
 
@@ -21,6 +22,8 @@ logger = logging.getLogger('elasticsearch')
 
 class ThriftConnection(PoolingConnection):
     """
+    This connection class is deprecated and may be removed in future versions.
+
     Connection using the `thrift` protocol to communicate with elasticsearch.
 
     See https://github.com/elasticsearch/elasticsearch-transport-thrift for additional info.
@@ -69,7 +72,7 @@ class ThriftConnection(PoolingConnection):
         except SocketTimeout as e:
             self.log_request_fail(method, url, body, time.time() - start, exception=e)
             raise ConnectionTimeout('TIMEOUT', str(e), e)
-        except (TException, SocketTimeout) as e:
+        except (TException, SocketError) as e:
             self.log_request_fail(method, url, body, time.time() - start, exception=e)
             if tclient:
                 try:

@@ -34,7 +34,19 @@ class EsCommand(GeneratingCommand):
   ##Syntax
 
   .. code-block::
-      es index=<string> | q=<string> | fields=<string> | oldest=<string> | earl=<string> | limit=<int>
+      es index=<string> | q=<string> | fields=<string> | oldest=<string> | earl=<string> | limit=<int> body="{
+    \"size\": 10,
+    \"query\": {
+           \"filtered\": {
+               \"query\": {
+                   \"query_string\": {
+                       \"query\": \"*\"
+                   }
+               }
+           }
+       }
+    }"
+
 
   ##Description
 
@@ -44,7 +56,19 @@ class EsCommand(GeneratingCommand):
   ##Example
 
   .. code-block::
-      | es oldest=now-100d earliest=now query="some text" index=nagios* limit=1000 field=message
+      | es oldest=now-100d earliest=now query="some text" index=nagios* limit=1000 field=message body="{
+    \"size\": 10,
+    \"query\": {
+           \"filtered\": {
+               \"query\": {
+                   \"query_string\": {
+                       \"query\": \"*\"
+                   }
+               }
+           }
+       }
+    }"
+    
 
   This example generates events drawn from the result of the query 
 
@@ -55,7 +79,7 @@ class EsCommand(GeneratingCommand):
 
   index = Option(doc='', require=False, default="*")
 
-  q = Option(doc='', require=True)
+  q = Option(doc='', require=False, default="*")
 
   fields = Option(doc='', require=False, default="message")
 
@@ -64,6 +88,8 @@ class EsCommand(GeneratingCommand):
   earl = Option(doc='', require=False, default="now-1d")
 
   limit = Option(doc='', require=False, validate=validators.Integer(), default=100)
+
+  body = Option(doc='', require=False, default=None)
 
   def generate(self):
 
@@ -74,18 +100,22 @@ class EsCommand(GeneratingCommand):
     #pp = pprint.PrettyPrinter(indent=4)
     self.logger.debug('Setup ES')
     es = Elasticsearch('{}:{}'.format(self.server, self.port))
-    body = {
-          "size": self.limit,
-          "query": {
-             "filtered" : {
-                "query": {
-                      "query_string" : {
-                            "query" : self.q
-                      }
-                }
-            }
-           } 
-       }
+    if not self.body:
+        body = {
+           "size": self.limit,
+           "query": {
+               "filtered": {
+                   "query": {
+                       "query_string": {
+                           "query": self.q
+                       }
+                   }
+               }
+           }
+        }
+    else:
+        body = self.body
+
     #pp.pprint(body);
     res = es.search(size=self.limit, index=self.index, body=body);
 

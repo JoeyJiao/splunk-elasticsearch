@@ -34,41 +34,19 @@ class EsCommand(GeneratingCommand):
   ##Syntax
 
   .. code-block::
-      es index=<string> | q=<string> | fields=<string> | oldest=<string> | earl=<string> | limit=<int> body="{
-    \"size\": 10,
-    \"query\": {
-           \"filtered\": {
-               \"query\": {
-                   \"query_string\": {
-                       \"query\": \"*\"
-                   }
-               }
-           }
-       }
-    }"
+      escat func=<string>
 
 
   ##Description
 
-  The :code:`es` issue a query to ElasticSearch, where the 
-  query is specified in :code:`q`.
+  The :code:`escat` issue a query to ElasticSearch, where the 
+  function is specified in :code:`func`.
 
   ##Example
 
   .. code-block::
-      | es oldest=now-100d earliest=now query="some text" index=nagios* limit=1000 field=message body="{
-    \"size\": 10,
-    \"query\": {
-           \"filtered\": {
-               \"query\": {
-                   \"query_string\": {
-                       \"query\": \"*\"
-                   }
-               }
-           }
-       }
-    }"
-    
+      | escat func="indices"
+
 
   This example generates events drawn from the result of the query 
 
@@ -77,19 +55,9 @@ class EsCommand(GeneratingCommand):
 
   port = Option(doc='', require=False, default="9200")
 
-  index = Option(doc='', require=False, default="*")
+  func = Option(doc='', require=False, default="indices")
 
-  q = Option(doc='', require=False, default="*")
-
-  fields = Option(doc='', require=False, default="message")
-
-  oldest = Option(doc='', require=False, default="now")
-
-  earl = Option(doc='', require=False, default="now-1d")
-
-  limit = Option(doc='', require=False, validate=validators.Integer(), default=100)
-
-  body = Option(doc='', require=False, default=None)
+  kwargs = Option(doc='', require=False, default="{}")
 
   def generate(self):
 
@@ -100,24 +68,10 @@ class EsCommand(GeneratingCommand):
     #pp = pprint.PrettyPrinter(indent=4)
     self.logger.debug('Setup ES')
     es = Elasticsearch('{}:{}'.format(self.server, self.port))
-    if not self.body:
-        body = {
-           "size": self.limit,
-           "query": {
-               "filtered": {
-                   "query": {
-                       "query_string": {
-                           "query": self.q
-                       }
-                   }
-               }
-           }
-        }
-    else:
-        body = self.body
 
     #pp.pprint(body);
-    res = es.search(size=self.limit, index=self.index, body=body);
+    self.logger.debug('kwargs=' + self.kwargs)
+    res = getattr(es.cat, self.func)(**json.loads(self.kwargs));
 
     # if response.status_code != 200:
     #   yield {'ERROR': results['error']['text']}
@@ -127,24 +81,14 @@ class EsCommand(GeneratingCommand):
     # date_time = '2014-12-21T16:11:18.419Z'
     # pattern = '%Y-%m-%dT%H:%M:%S.%fZ'
 
-    for hit in res['hits']['hits']:
-      yield self.getEvent(hit)
+    for line in res.split('\n')[:-1]:
+        yield self.getEvent(line)
 
   def getEvent(self, result):
 
-    # hit["_source"][defaultField] = hit["_source"][defaultField].replace('"',' ');
-    # epochTimestamp = hit['_source']['@timestamp'];
-    # hit['_source']['_epoch'] = int(time.mktime(time.strptime(epochTimestamp, pattern)))
-    # hit['_source']["_raw"]=hit['_source'][defaultField]
-
     event = {'_time': time.time(), 
-             '_index': result['_index'], 
-             '_type': result['_type'], 
-             '_id': result['_id'],
-             '_score': result['_score']
+             '_raw': result
             }
-
-    event["_raw"] = json.dumps(result)
 
     return event
 

@@ -34,43 +34,31 @@ class EsCommand(GeneratingCommand):
   ##Syntax
 
   .. code-block::
-      es server=localhost func=<string> kwargs=[eval query="\"{
-    'index'=<string>,
-    'q'=<string>,
-    'size'=<int>,
-    'body'="{
-    \"query\": {
-           \"filtered\": {
-               \"query\": {
-                   \"query_string\": {
-                       \"query\": \"*\"
-                   }
-               }
-           }
-       }
-    }\""
+      esquery server=<string> func=<string> filter=<string> kwargs="{
+    \"index\":<string>,
+    \"size\":<int>,
+    \"format\":\"json\"
+    }"
 
 
   ##Description
 
-  The :code:`es` issue a query to ElasticSearch, where the 
-  query is specified in :code:`q`.
+  The :code:`esquery` issue a query to ElasticSearch, where the 
+  filter specifies the key to filter out in dict,
+  and kwargs specifies the keywords in es query function like index, size, body etc.
 
   ##Example
 
   .. code-block::
-      | es body="{
-    \"query\": {
-           \"filtered\": {
-               \"query\": {
-                   \"query_string\": {
-                       \"query\": \"*\"
-                   }
-               }
-           }
-       }
+      | esquery server=hostname func="search" filter="hits.hits" kwargs="{
+    \"index\": \"logstash\"
     }"
     
+  .. code-block::
+      | esquery server=hostname func="cat.indices" kwargs="{
+    \"h\": \"index\",
+    \"format\": \"json\"
+    }"
 
   This example generates events drawn from the result of the query 
 
@@ -81,7 +69,9 @@ class EsCommand(GeneratingCommand):
 
   func = Option(doc='', require=False, default="search")
 
-  kwargs = Option(doc='', require=True, default='{}')
+  kwargs = Option(doc='', require=False, default='{}')
+
+  filter = Option(doc='', require=False, default=None)
 
 
   def generate(self):
@@ -115,7 +105,30 @@ class EsCommand(GeneratingCommand):
     # date_time = '2014-12-21T16:11:18.419Z'
     # pattern = '%Y-%m-%dT%H:%M:%S.%fZ'
 
-    yield self.getEvent(res)
+    def filter_field(res, field):
+      array = field.split('.')
+      result = res.get(array[0])
+      if len(array) == 1:
+        return result
+
+      return filter_field(result, '.'.join(array[1:]))
+        
+
+    if type(res) == list:
+      for hit in res:
+        yield self.getEvent(hit)
+    elif type(res) == dict:
+      if not self.filter:
+        yield self.getEvent(res)
+      else:
+        result = filter_field(res, self.filter)
+        for hit in result:
+          yield self.getEvent(hit)
+    elif type(res) == unicode:
+      for hit in res.split('\n'):
+        yield self.getEvent(hit)
+    else:
+      yield self.getEvent(res)
 
   def getEvent(self, result):
 

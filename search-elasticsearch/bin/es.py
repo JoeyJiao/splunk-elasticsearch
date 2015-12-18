@@ -122,8 +122,11 @@ class EsCommand(GeneratingCommand):
         yield self.getEvent(res)
       else:
         result = filter_field(res, self.filter)
-        for hit in result:
-          yield self.getEvent(hit)
+        if hasattr(result, '__iter__'):
+          for hit in result:
+            yield self.getEvent(hit)
+        else:
+          yield self.getEvent(result)
     elif type(res) == unicode:
       for hit in res.split('\n'):
         yield self.getEvent(hit)

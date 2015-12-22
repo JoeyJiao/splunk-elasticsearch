@@ -82,7 +82,7 @@ class EsCommand(GeneratingCommand):
  
     #pp = pprint.PrettyPrinter(indent=4)
     self.logger.debug('Setup ES')
-    es = Elasticsearch('{}:{}'.format(self.server, self.port))
+    es = Elasticsearch('{}:{}'.format(self.server, self.port), timeout=180)
 
 
     def get_func(es, func):

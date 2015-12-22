@@ -73,6 +73,7 @@ class EsCommand(GeneratingCommand):
 
   filter = Option(doc='', require=False, default=None)
 
+  timeout = Option(doc='', require=False, default=180)
 
   def generate(self):
 
@@ -82,7 +83,7 @@ class EsCommand(GeneratingCommand):
  
     #pp = pprint.PrettyPrinter(indent=4)
     self.logger.debug('Setup ES')
-    es = Elasticsearch('{}:{}'.format(self.server, self.port), timeout=180)
+    es = Elasticsearch('{}:{}'.format(self.server, self.port), timeout=self.timeout)
 
 
     def get_func(es, func):

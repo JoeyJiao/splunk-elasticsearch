@@ -91,6 +91,8 @@ class EsCommand(GeneratingCommand):
 
   body = Option(doc='', require=False, default=None)
 
+  timeout = Option(doc='', require=False, default=180)
+
   def generate(self):
 
     #self.logger.debug('SimulateCommand: %s' % self)  # log command line
@@ -99,7 +101,7 @@ class EsCommand(GeneratingCommand):
  
     #pp = pprint.PrettyPrinter(indent=4)
     self.logger.debug('Setup ES')
-    es = Elasticsearch('{}:{}'.format(self.server, self.port), timeout=180)
+    es = Elasticsearch('{}:{}'.format(self.server, self.port), timeout=self.timeout)
     if not self.body:
         body = {
            "size": self.limit,

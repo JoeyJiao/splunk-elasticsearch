@@ -1,5 +1,5 @@
 #!/bin/bash
 
 app=$(basename $(pwd))
-tar czv --exclude=.git --exclude=local ../${app} > ../${app}.tar.gz
+tar czv --exclude=*.pyc --exclude=packaging.sh --exclude=.git --exclude=.gitignore --exclude=env --exclude=esearch.log --exclude=local --exclude=tags ../${app} > ../${app}.tar.gz
 mv ../${app}.tar.gz ../${app}.spl

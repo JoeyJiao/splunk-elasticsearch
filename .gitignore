@@ -20,3 +20,4 @@ tests/searchcommands_data/output/
 tags
 env/
 esearch.log
+search-elasticsearch.spl

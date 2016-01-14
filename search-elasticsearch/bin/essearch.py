@@ -93,6 +93,8 @@ class EsCommand(GeneratingCommand):
 
   timeout = Option(doc='', require=False, default=180)
 
+  one = Option(doc='', require=False, default=False)
+
   def generate(self):
 
     #self.logger.debug('SimulateCommand: %s' % self)  # log command line
@@ -104,7 +106,6 @@ class EsCommand(GeneratingCommand):
     es = Elasticsearch('{}:{}'.format(self.server, self.port), timeout=self.timeout)
     if not self.body:
         body = {
-           "size": self.limit,
            "query": {
                "filtered": {
                    "query": {
@@ -129,8 +130,20 @@ class EsCommand(GeneratingCommand):
     # date_time = '2014-12-21T16:11:18.419Z'
     # pattern = '%Y-%m-%dT%H:%M:%S.%fZ'
 
-    for hit in res['hits']['hits']:
-      yield self.getEvent(hit)
+    if not self.one:
+        for hit in res['hits']['hits']:
+            yield self.getEvent(hit)
+    else:
+        if type(res) == list:
+          for hit in res:
+            yield self.getEvent(hit)
+        elif type(res) == dict:
+          yield self.getEvent(res)
+        elif type(res) == unicode:
+          for hit in res.split('\n'):
+            yield self.getEvent(hit)
+        else:
+          yield self.getEvent(res)
 
   def getEvent(self, result):
 
@@ -139,14 +152,19 @@ class EsCommand(GeneratingCommand):
     # hit['_source']['_epoch'] = int(time.mktime(time.strptime(epochTimestamp, pattern)))
     # hit['_source']["_raw"]=hit['_source'][defaultField]
 
-    event = {'_time': time.time(), 
-             '_index': result['_index'], 
-             '_type': result['_type'], 
-             '_id': result['_id'],
-             '_score': result['_score']
-            }
-
-    event["_raw"] = json.dumps(result)
+    if not self.one:
+        event = {'_time': time.time(), 
+                 '_index': result['_index'], 
+                 '_type': result['_type'], 
+                 '_id': result['_id'],
+                 '_score': result['_score'],
+                 '_raw': json.dumps(result)
+                }
+    else:
+        event = {
+                '_time': time.time(),
+                '_raw': json.dumps(result)
+                }
 
     return event
 
